@@ -126,41 +126,54 @@ async def alerter_opportunite(annonce: dict[str, Any]) -> bool:
 
 
 async def envoyer_rapport(top_cassees: list[dict], top_fonctionnels: list[dict]) -> bool:
-    """Envoie le rapport quotidien (top 5 cassés + top 5 fonctionnels) sur Discord."""
+    """
+    Envoie LE récap quotidien : toutes les meilleures opportunités du jour en un
+    seul message (pas d'alertes éparpillées). Liste les cassés intéressants
+    (avec score, ROI, lien) + quelques bonnes affaires fonctionnelles.
+    """
     if not settings.discord_rapport_actif:
         await _journaliser("rapport", None, "webhook rapport non configuré", None, False,
                            "webhook manquant")
         return False
 
-    def ligne_cassee(a: dict) -> str:
-        """Formate une ligne d'annonce cassée pour le rapport."""
-        return (f"• {a.get('modele','?')} {a.get('stockage') or ''} — "
-                f"{a.get('prix',0):.0f}€ — score {a.get('score',0)} — "
-                f"ROI ~{(a.get('roi_estime') or 0):.0f}€ "
-                f"([voir]({a.get('url','')}))")
+    def ligne_cassee(i: int, a: dict) -> str:
+        """Une ligne numérotée d'opportunité cassée."""
+        modele = f"{a.get('modele','?')} {a.get('stockage') or ''}".strip()
+        return (f"`{i:>2}.` **{modele}** — {_libelle_panne(a.get('panne'))}\n"
+                f"     {a.get('prix',0):.0f} € · score **{a.get('score',0)}** · "
+                f"ROI ~{(a.get('roi_estime') or 0):.0f} € · "
+                f"[voir l'annonce]({a.get('url','')})")
 
     def ligne_fonct(a: dict) -> str:
-        """Formate une ligne d'annonce fonctionnelle pour le rapport."""
-        return (f"• {a.get('modele','?')} {a.get('stockage') or ''} — "
-                f"{a.get('prix',0):.0f}€ — {a.get('ville') or 'France'} "
-                f"([voir]({a.get('url','')}))")
+        """Une ligne de bonne affaire fonctionnelle."""
+        modele = f"{a.get('modele','?')} {a.get('stockage') or ''}".strip()
+        return f"• **{modele}** — {a.get('prix',0):.0f} € · [voir]({a.get('url','')})"
 
-    desc_cassees = "\n".join(ligne_cassee(a) for a in top_cassees) or "_Aucune annonce cassée._"
-    desc_fonct = "\n".join(ligne_fonct(a) for a in top_fonctionnels) or "_Aucune annonce fonctionnelle._"
+    if top_cassees:
+        description = "\n".join(ligne_cassee(i + 1, a) for i, a in enumerate(top_cassees))
+        titre = f"Récap du jour — {len(top_cassees)} opportunité(s) à étudier"
+    else:
+        description = "_Aucune opportunité intéressante détectée aujourd'hui._"
+        titre = "Récap du jour — Arbitrage iPhone"
 
     embed = {
-        "title": "Rapport quotidien — Arbitrage iPhone",
+        "title": titre,
+        "description": description[:4000],
         "color": _COULEUR_RAPPORT,
-        "fields": [
-            {"name": "Top 5 cassés (meilleurs scores)", "value": desc_cassees[:1024], "inline": False},
-            {"name": "Top 5 fonctionnels (bons prix)", "value": desc_fonct[:1024], "inline": False},
-        ],
-        "footer": {"text": "Rapport automatique de 20h00"},
+        "footer": {"text": "Récap automatique de 20h00 · seuil score "
+                           f"{settings.SEUIL_RAPPORT}+"},
     }
+    if top_fonctionnels:
+        embed["fields"] = [{
+            "name": "Bonnes affaires fonctionnelles (revente directe)",
+            "value": "\n".join(ligne_fonct(a) for a in top_fonctionnels)[:1024],
+            "inline": False,
+        }]
+
     payload = {"username": "Arbitrage iPhone", "embeds": [embed]}
     envoye = await _post_webhook(settings.DISCORD_WEBHOOK_RAPPORT, payload)
-    await _journaliser("rapport", None, "rapport quotidien", None, envoye,
-                       None if envoye else "échec d'envoi")
+    await _journaliser("rapport", None, f"récap quotidien ({len(top_cassees)} opp.)",
+                       None, envoye, None if envoye else "échec d'envoi")
     if envoye:
-        log.info("Rapport quotidien Discord envoyé.")
+        log.info("Récap quotidien Discord envoyé.")
     return envoye

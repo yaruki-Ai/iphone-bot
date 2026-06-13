@@ -81,6 +81,12 @@ class Settings:
         self.SCAN_INTERVAL_MINUTES: int = _int(os.getenv("SCAN_INTERVAL_MINUTES"), 12)
         self.SEUIL_ALERTE_SCORE: int = _int(os.getenv("SEUIL_ALERTE_SCORE"), 70)
         self.MARGE_CIBLE_POURCENT: float = _float(os.getenv("MARGE_CIBLE_POURCENT"), 30.0)
+        # Alertes Discord immédiates à chaque scan : désactivées par défaut.
+        # On privilégie UN récap quotidien (cf. ci-dessous) pour éviter le spam.
+        self.ALERTES_IMMEDIATES: bool = _bool(os.getenv("ALERTES_IMMEDIATES"), False)
+        # Récap quotidien : score minimum retenu et nombre max d'annonces listées.
+        self.SEUIL_RAPPORT: int = _int(os.getenv("SEUIL_RAPPORT"), 50)
+        self.RAPPORT_TOP_N: int = _int(os.getenv("RAPPORT_TOP_N"), 15)
 
         # --- eBay : scraping classique de eBay.fr (aucune clé API requise) ---
 

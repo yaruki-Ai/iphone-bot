@@ -47,11 +47,12 @@ async def scan_complet() -> dict:
     await market.recalculer_tout()
     opportunites = await opportunity.recalculer_scores()
 
-    # Alertes immédiates pour les nouvelles opportunités au-dessus du seuil.
+    # Alertes immédiates : seulement si explicitement activées (sinon récap 20h).
     nb_alertes = 0
-    for opp in opportunites:
-        if await discord.alerter_opportunite(opp):
-            nb_alertes += 1
+    if settings.ALERTES_IMMEDIATES:
+        for opp in opportunites:
+            if await discord.alerter_opportunite(opp):
+                nb_alertes += 1
 
     resume = {
         "collectees_live": nb_live,
@@ -72,13 +73,13 @@ async def verifier_annonces_actives() -> int:
     return nb
 
 
-async def _top_cassees(limite: int = 5) -> list[dict]:
-    """Top annonces cassées actives par score décroissant."""
+async def _top_cassees(limite: int = 15) -> list[dict]:
+    """Top opportunités cassées actives (score >= seuil rapport), par score."""
     return await fetch_all(
         """SELECT * FROM annonces
-           WHERE active = 1 AND etat = 'casse' AND score IS NOT NULL
+           WHERE active = 1 AND etat = 'casse' AND score IS NOT NULL AND score >= ?
            ORDER BY score DESC, roi_estime DESC LIMIT ?""",
-        (limite,),
+        (settings.SEUIL_RAPPORT, limite),
     )
 
 
@@ -103,6 +104,6 @@ async def _top_fonctionnels(limite: int = 5) -> list[dict]:
 async def generer_rapport_quotidien() -> bool:
     """Construit et envoie le rapport Discord du soir (top 5 + top 5)."""
     log.info("Génération du rapport quotidien…")
-    top_cassees = await _top_cassees(5)
+    top_cassees = await _top_cassees(settings.RAPPORT_TOP_N)
     top_fonct = await _top_fonctionnels(5)
     return await discord.envoyer_rapport(top_cassees, top_fonct)
