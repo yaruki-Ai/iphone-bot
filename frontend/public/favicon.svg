@@ -1,0 +1,7 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Arbitrage iPhone">
+  <rect width="512" height="512" rx="112" fill="#2f6df0"/>
+  <polyline points="116,344 210,256 298,306 398,176"
+            fill="none" stroke="#ffffff" stroke-width="38"
+            stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="356,160 416,150 412,212" fill="#ffffff"/>
+</svg>

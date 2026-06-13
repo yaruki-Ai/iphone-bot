@@ -76,6 +76,10 @@ async def lifespan(app: FastAPI):
     from backend.database.db import init_db
     await init_db()
 
+    # Sauvegarde automatique des données au lancement (sécurité client).
+    from backend.backup import creer_sauvegarde
+    creer_sauvegarde()
+
     # Amorçage des données de démonstration si la base est vide et mode simulation.
     if settings.SIMULATION_MODE:
         await simulator.amorcer_si_vide()

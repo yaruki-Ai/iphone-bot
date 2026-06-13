@@ -63,5 +63,5 @@ exe = EXE(
     runtime_tmpdir=None,
     console=True,          # garde une fenêtre console (logs visibles au client)
     disable_windowed_traceback=False,
-    icon=None,
+    icon="assets/icon.ico",
 )

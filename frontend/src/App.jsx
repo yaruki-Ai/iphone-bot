@@ -18,6 +18,18 @@ const PAGES = [
   { id: "predictions", label: "Prédictions", composant: Predictions },
 ];
 
+/** Logo de l'application (cohérent avec le favicon et l'icône de l'exe). */
+function Logo() {
+  return (
+    <svg width="34" height="34" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-label="Arbitrage iPhone">
+      <rect width="512" height="512" rx="112" fill="#2f6df0" />
+      <polyline points="116,344 210,256 298,306 398,176" fill="none"
+        stroke="#ffffff" strokeWidth="38" strokeLinecap="round" strokeLinejoin="round" />
+      <polygon points="356,160 416,150 412,212" fill="#ffffff" />
+    </svg>
+  );
+}
+
 /** Petit compteur affiché dans le bandeau. */
 function Compteur({ label, valeur, accent = "text-ink" }) {
   return (
@@ -80,6 +92,7 @@ export default function App() {
       <header className="border-b border-line bg-surface/90 backdrop-blur sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
+            <Logo />
             <div>
               <h1 className="font-semibold text-ink leading-tight tracking-tight text-[17px]">
                 Arbitrage iPhone

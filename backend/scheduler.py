@@ -12,6 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
+from backend.backup import creer_sauvegarde
 from backend.config import settings
 from backend.logger import log
 from backend.scraper.runner import (
@@ -48,6 +49,14 @@ async def _job_rapport() -> None:
         log.error(f"Job rapport en erreur : {exc}")
 
 
+async def _job_sauvegarde() -> None:
+    """Job quotidien : sauvegarde automatique de la base."""
+    try:
+        creer_sauvegarde()
+    except Exception as exc:
+        log.error(f"Job sauvegarde en erreur : {exc}")
+
+
 def demarrer() -> None:
     """Enregistre les jobs et démarre le scheduler (idempotent)."""
     if scheduler.running:
@@ -67,6 +76,11 @@ def demarrer() -> None:
         _job_rapport,
         CronTrigger(hour=20, minute=0),
         id="rapport", replace_existing=True, max_instances=1, coalesce=True,
+    )
+    scheduler.add_job(
+        _job_sauvegarde,
+        CronTrigger(hour=3, minute=0),
+        id="sauvegarde", replace_existing=True, max_instances=1, coalesce=True,
     )
     scheduler.start()
     log.info(
