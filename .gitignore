@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Base de données et logs
+data/*.db
+data/*.db-wal
+data/*.db-shm
+logs/*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Build PyInstaller
+build/
+dist/
+*.spec.bak

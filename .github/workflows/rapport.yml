@@ -1,0 +1,26 @@
+name: Rapport quotidien Discord
+
+# Envoie le rapport du soir (top 5 cassés + top 5 fonctionnels).
+on:
+  schedule:
+    - cron: "0 18 * * *"   # 18h00 UTC = 20h00 Paris en été (CEST), 19h00 en hiver
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rapport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Rapport quotidien
+        env:
+          SIMULATION_MODE: "false"
+          DISCORD_WEBHOOK_RAPPORT: ${{ secrets.DISCORD_WEBHOOK_RAPPORT }}
+        run: python -m backend.job rapport

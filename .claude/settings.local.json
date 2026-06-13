@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sqlite3; c=sqlite3.connect\\('iphone_arbitrage.db'\\); print\\('journal_mode:', c.execute\\('PRAGMA journal_mode;'\\).fetchone\\(\\)[0]\\); print\\('busy_timeout:', c.execute\\('PRAGMA busy_timeout;'\\).fetchone\\(\\)[0]\\); c.close\\(\\)\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
