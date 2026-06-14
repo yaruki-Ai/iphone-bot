@@ -43,12 +43,19 @@ def test_parser() -> None:
         "Vitre arrière iPhone 11 noire",
         "Chargeur rapide pour iPhone",
         "Batterie iPhone 12 neuve",
+        "Originale Apple iPhone 16 Pro Clear Case mit MagSafe transparent",
+        "Quad Lock iPhone 11 Pro",
     ]
     for a in accessoires:
         r = analyser_texte(a)
         marque = "OK " if r["modele"] is None else "ERR"
         print(f"[{marque}] ACCESSOIRE rejeté : {a[:45]:45} -> modele={r['modele']}")
         assert r["modele"] is None, f"Accessoire non rejeté : {a} -> {r}"
+
+    # Accessoire dont le TITRE ne dit rien, mais la DESCRIPTION trahit (coque).
+    r = analyser_texte("iPhone 11 Pro", "Je vends une coque Quad Lock compatible iPhone 11 Pro")
+    print(f"[{'OK ' if r['modele'] is None else 'ERR'}] ACCESSOIRE via description -> modele={r['modele']}")
+    assert r["modele"] is None, f"Coque (description) non rejetée : {r}"
 
     # Vrais iPhones cassés : doivent rester acceptés (panne détectée).
     assert analyser_texte("iPhone 13 Pro Max écran cassé")["modele"] == "iPhone 13 Pro Max"
