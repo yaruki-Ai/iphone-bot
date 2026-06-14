@@ -67,12 +67,33 @@ _NUMS = ("16", "15", "14", "13", "12", "11", "8", "7", "6s", "6")
 _VARIANTES = ("pro max", "pro", "plus", "mini")
 
 # Mots indiquant un ACCESSOIRE (jamais un téléphone) : mots entiers, n'importe où.
+# Inclut des termes anglais et allemands (annonces Vinted multilingues).
 _ACCESSOIRES = (
     "protection", "protecteur", "verre trempe", "tempered", "glass", "film",
     "coque", "etui", "housse", "pochette", "bumper", "silicone", "chargeur",
     "cable", "adaptateur", "dock", "station", "cordon", "qdos", "spigen", "otterbox",
     "stylet", "embout", "antichoc", "screen protector", "vitre de protection",
     "manette", "lot de", "sticker", "skin", "autocollant", "coffret vide", "boite vide",
+    # anglais / allemand
+    "case", "cover", "hulle", "schutzhulle", "schutz", "panzerglas", "displayschutz",
+    "ladekabel", "ladegerat", "kabel", "quad lock", "quadlock", "popsocket",
+    "magsafe", "porte carte", "support velo", "support voiture", "powerbank", "power bank",
+)
+
+# Phrases dans la DESCRIPTION trahissant un accessoire (très faible risque d'erreur) :
+# un vrai téléphone se décrit "je vends mon iphone", jamais "je vends une coque".
+_ACCESSOIRE_DESC = (
+    "vends une coque", "vends ma coque", "vends des coques", "vends un chargeur",
+    "vends une protection", "vends une vitre", "vends un cable", "vends une housse",
+    "vends un etui", "vends une batterie externe", "compatible iphone",
+    "compatible avec iphone", "pour iphone", "batterie externe",
+)
+
+# Noms d'accessoires pour l'analyse de la DESCRIPTION (sujet de l'annonce).
+_NOUNS_ACCESSOIRE = (
+    "coque", "case", "housse", "etui", "hulle", "schutzhulle", "cover", "protection",
+    "chargeur", "cable", "kabel", "ladekabel", "ladegerat", "verre trempe", "film",
+    "support", "dock", "quad lock", "quadlock", "popsocket", "panzerglas", "bumper",
 )
 
 # Noms de PIÈCES détachées : si présents AVANT 'iphone' dans le titre => rejet.
@@ -210,25 +231,30 @@ def difficulte_reparation(panne: str | None) -> str:
     return table.get(panne, "difficile")
 
 
-def est_accessoire(titre: str) -> bool:
+def est_accessoire(titre: str, description: str = "") -> bool:
     """
     Détecte un accessoire ou une pièce détachée (et non un iPhone à vendre).
-    Ex : 'Écran iPhone 12 Pro Max', 'Protection écran QDOS iPhone 15'.
-    - mot d'accessoire n'importe où (coque, protection, glass, chargeur…) => oui ;
-    - nom de pièce (écran, vitre, caméra…) AVANT 'iphone' => sujet = la pièce => oui.
+    Ex : 'Écran iPhone 12 Pro Max', 'Clear Case', 'Quad Lock iPhone 11 Pro'.
+    - mot d'accessoire dans le TITRE (coque, case, glass, chargeur…) => oui ;
+    - nom de pièce (écran, vitre…) AVANT 'iphone' dans le titre => oui ;
+    - phrase d'accessoire dans la DESCRIPTION ('je vends une coque', 'compatible
+      iPhone'…) => oui (les mots type 'coque' seuls dans la description ne comptent
+      pas, car un vrai téléphone peut offrir une coque en bonus).
     """
     t = _normaliser(titre)
-    if not t:
-        return False
-    if _contient_mot(t, _ACCESSOIRES):
-        return True
-    ref = t.find("iphone")
-    if ref < 0:
-        ref = t.find("apple")
-    for piece in _PIECES:
-        p = t.find(piece)
-        if p >= 0 and (ref < 0 or p < ref):
+    if t:
+        if _contient_mot(t, _ACCESSOIRES):
             return True
+        ref = t.find("iphone")
+        if ref < 0:
+            ref = t.find("apple")
+        for piece in _PIECES:
+            p = t.find(piece)
+            if p >= 0 and (ref < 0 or p < ref):
+                return True
+    d = _normaliser(description)
+    if d and any(phrase in d for phrase in _ACCESSOIRE_DESC):
+        return True
     return False
 
 
@@ -237,7 +263,7 @@ def analyser_texte(titre: str, description: str = "") -> dict:
     Analyse complète d'une annonce : modele, stockage, etat, panne, icloud_detecte.
     Si c'est un accessoire / une pièce détachée, modele=None (ignoré par les scrapers).
     """
-    if est_accessoire(titre):
+    if est_accessoire(titre, description):
         return {"modele": None, "stockage": None, "etat": "fonctionnel",
                 "panne": None, "icloud_detecte": 0, "batterie_pct": None}
 

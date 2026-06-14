@@ -99,6 +99,9 @@ class Settings:
         # --- Leboncoin ---
         self.LBC_EMAIL: str = os.getenv("LBC_EMAIL", "").strip()
         self.LBC_PASSWORD: str = os.getenv("LBC_PASSWORD", "").strip()
+        # Clé d'une API anti-bot (ScraperAPI/ZenRows…) pour passer DataDome.
+        # Si vide : LBC reste bloqué (gratuit). Si renseignée : LBC fonctionne.
+        self.LBC_SCRAPER_API_KEY: str = os.getenv("LBC_SCRAPER_API_KEY", "").strip()
 
         # Création des dossiers nécessaires dès le démarrage.
         self.DOSSIER_DATA.mkdir(parents=True, exist_ok=True)

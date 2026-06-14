@@ -144,7 +144,9 @@ async def scraper(pages: int = 1) -> list[dict]:
                 log.warning(f"eBay : amorçage cookies impossible : {exc}")
 
             for page in range(1, pages + 1):
-                params = {"_nkw": "iphone", "_sop": "10", "_ipg": "60", "_pgn": str(page)}
+                # LH_BIN=1 : uniquement « Achat immédiat » (exclut les enchères).
+                params = {"_nkw": "iphone", "_sop": "10", "_ipg": "60",
+                          "_pgn": str(page), "LH_BIN": "1"}
                 try:
                     rep = await client.get(_URL, params=params)
                     if rep.status_code in (403, 429):
@@ -154,6 +156,12 @@ async def scraper(pages: int = 1) -> list[dict]:
                     if rep.status_code != 200:
                         log.warning(f"eBay HTTP {rep.status_code} page {page}.")
                         continue
+                    # Blocage "soft" : statut 200 mais page quasi vide (la vraie
+                    # page de résultats fait > 1 Mo). On met en cooldown.
+                    if len(rep.text) < 60000:
+                        log.warning("eBay : page vide (throttling) — cooldown 20 min.")
+                        antiban.declencher_cooldown(_SOURCE, 20)
+                        return resultats
                     soup = BeautifulSoup(rep.text, "html.parser")
                     for titre_el in soup.select(".s-card__title"):
                         norm = _normaliser(titre_el)

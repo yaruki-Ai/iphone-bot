@@ -12,10 +12,13 @@ Aucune donnée n'est inventée : si l'API est bloquée, la fonction renvoie [].
 """
 
 import asyncio
+import json
 import random
+import re
 
 import httpx
 
+from backend.config import settings
 from backend.logger import log
 from backend.scraper import antiban
 from backend.scraper.parser import analyser_texte
@@ -88,11 +91,69 @@ def _normaliser(ad: dict) -> dict | None:
         return None
 
 
+def _ads_depuis_next_data(html: str) -> list[dict]:
+    """Extrait les annonces du JSON __NEXT_DATA__ d'une page de recherche LBC."""
+    m = re.search(
+        r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html, re.S
+    )
+    if not m:
+        return []
+    try:
+        data = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return []
+    resultats, vus = [], set()
+
+    def parcourir(obj):
+        """Parcourt récursivement le JSON pour trouver les annonces (list_id + subject)."""
+        if isinstance(obj, dict):
+            if "list_id" in obj and "subject" in obj:
+                norm = _normaliser(obj)
+                if norm and norm["plateforme_id"] not in vus:
+                    vus.add(norm["plateforme_id"])
+                    resultats.append(norm)
+            for v in obj.values():
+                parcourir(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                parcourir(v)
+
+    parcourir(data)
+    return resultats
+
+
+async def _scraper_via_api() -> list[dict]:
+    """
+    Récupère LBC via une API anti-bot (ScraperAPI) qui passe DataDome.
+    Activé seulement si LBC_SCRAPER_API_KEY est renseignée. Sans ban.
+    """
+    cle = settings.LBC_SCRAPER_API_KEY
+    cible = "https://www.leboncoin.fr/recherche?category=17&text=iphone&sort=time"
+    params = {"api_key": cle, "url": cible, "render": "true", "country_code": "fr"}
+    try:
+        async with httpx.AsyncClient(timeout=75) as client:
+            rep = await client.get("https://api.scraperapi.com/", params=params)
+        if rep.status_code == 200:
+            ads = _ads_depuis_next_data(rep.text)
+            log.info(f"Leboncoin (API anti-bot) : {len(ads)} annonces collectées.")
+            return ads
+        log.warning(f"Leboncoin API anti-bot HTTP {rep.status_code}.")
+    except httpx.HTTPError as exc:
+        log.error(f"Leboncoin API anti-bot en échec : {exc}")
+    return []
+
+
 async def scraper(pages: int = 2) -> list[dict]:
     """
-    Scrape les annonces iPhone récentes sur Leboncoin (API interne, anonyme).
+    Scrape les annonces iPhone récentes sur Leboncoin.
+    - Si une clé API anti-bot est configurée : on l'utilise (passe DataDome, sans ban).
+    - Sinon : tentative anonyme (souvent bloquée par DataDome → cooldown).
     Retourne une liste d'annonces normalisées (vide si bloqué ou en cooldown).
     """
+    # Voie payante anti-bot : la seule fiable pour LBC (active si clé fournie).
+    if settings.LBC_SCRAPER_API_KEY:
+        return await _scraper_via_api()
+
     if antiban.en_cooldown(_SOURCE):
         log.info("Leboncoin en cooldown (récemment bloqué) — source ignorée ce scan.")
         return []

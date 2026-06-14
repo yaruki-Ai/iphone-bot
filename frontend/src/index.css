@@ -17,18 +17,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Barre de défilement discrète et claire. */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-thumb {
-  background: #d6dae1;
-  border-radius: 6px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #c2c8d1;
-}
+/* On laisse l'ascenseur natif du navigateur (pas de style custom). */
 
 /* Transitions douces par défaut sur les éléments interactifs. */
 button,
