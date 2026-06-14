@@ -27,9 +27,9 @@ export default function History() {
   const [erreur, setErreur] = useState("");
 
   function charger() {
-    api.get("/historique").then(setItems).catch(() => setItems([]));
+    return api.get("/historique").then(setItems).catch(() => setItems([]));
   }
-  useEffect(charger, []);
+  useEffect(() => { charger(); }, []);
 
   /** Saisie manuelle complète d'une vente. */
   async function ajouter(e) {

@@ -31,11 +31,11 @@ export default function Stock() {
   });
   const [erreur, setErreur] = useState("");
 
-  /** Recharge la liste du stock. */
+  /** Recharge la liste du stock (renvoie la promesse pour pouvoir l'attendre). */
   function charger() {
-    api.get("/stock").then(setItems).catch(() => setItems([]));
+    return api.get("/stock").then(setItems).catch(() => setItems([]));
   }
-  useEffect(charger, []);
+  useEffect(() => { charger(); }, []);
 
   /** Ajoute un téléphone au stock. */
   async function ajouter(e) {
@@ -49,7 +49,7 @@ export default function Stock() {
       });
       setForm({ ...form, modele: "", stockage: "", couleur: "", prix_achat: "",
         pieces_remplacees: "", cout_pieces: "0", notes: "" });
-      charger();
+      await charger();
     } catch (err) {
       setErreur(err.message);
     }

@@ -211,11 +211,12 @@ async def annonces(etat: str | None = None, modele: str | None = None,
 # --- Opportunités ---------------------------------------------------------
 @app.get("/api/opportunites")
 async def opportunites(score_min: int = 0, prix_min: float = 0, prix_max: float = 0,
-                       rentables: int = 1, limit: int = 100) -> list[dict]:
-    """Opportunités d'achat (annonces cassées scorées), filtrables (facultatif)."""
+                       rentables: int = 1, etat: str | None = None,
+                       limit: int = 100) -> list[dict]:
+    """Opportunités d'achat (cassées et/ou fonctionnelles), filtrables (facultatif)."""
     return await opportunity.top_opportunites(
         limite=min(limit, 200), score_min=score_min, prix_min=prix_min,
-        prix_max=prix_max, rentables_seulement=bool(rentables),
+        prix_max=prix_max, rentables_seulement=bool(rentables), etat=etat,
     )
 
 

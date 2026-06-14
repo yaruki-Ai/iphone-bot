@@ -28,12 +28,13 @@ async def recalculer_scores() -> list[dict[str, Any]]:
     à une notification ; le dédoublonnage des alertes est géré par le notifier).
     """
     stats_idx = await _index_stats()
-    cassees = await fetch_all(
-        "SELECT * FROM annonces WHERE active = 1 AND etat = 'casse'"
+    # On score les annonces cassées (à réparer) ET fonctionnelles (bonnes affaires).
+    actives = await fetch_all(
+        "SELECT * FROM annonces WHERE active = 1 AND etat IN ('casse', 'fonctionnel')"
     )
     opportunites: list[dict[str, Any]] = []
 
-    for annonce in cassees:
+    for annonce in actives:
         stats = stats_idx.get((annonce["modele"], annonce["stockage"]))
         resultat = scorer_annonce(annonce, stats)
         await execute(
@@ -55,7 +56,7 @@ async def recalculer_scores() -> list[dict[str, Any]]:
             opportunites.append(enrichie)
 
     log.info(
-        f"Scores recalculés sur {len(cassees)} annonces cassées — "
+        f"Scores recalculés sur {len(actives)} annonces — "
         f"{len(opportunites)} au-dessus du seuil {settings.SEUIL_ALERTE_SCORE}."
     )
     return opportunites
@@ -63,14 +64,19 @@ async def recalculer_scores() -> list[dict[str, Any]]:
 
 async def top_opportunites(limite: int = 100, score_min: int = 0,
                            prix_min: float = 0, prix_max: float = 0,
-                           rentables_seulement: bool = True) -> list[dict[str, Any]]:
+                           rentables_seulement: bool = True,
+                           etat: str | None = None) -> list[dict[str, Any]]:
     """
-    Retourne les opportunités actives (annonces cassées scorées).
+    Retourne les opportunités actives scorées (cassées ET/OU fonctionnelles).
     Par défaut : toutes les annonces RENTABLES (ROI > 0), sans filtre de score.
-    Les filtres (score min, fourchette de prix) sont optionnels.
+    'etat' optionnel : 'casse', 'fonctionnel', ou None (les deux).
     """
-    conditions = ["active = 1", "etat = 'casse'", "score IS NOT NULL", "score >= ?"]
+    conditions = ["active = 1", "etat IN ('casse','fonctionnel')",
+                  "score IS NOT NULL", "score >= ?"]
     params: list[Any] = [score_min]
+    if etat in ("casse", "fonctionnel"):
+        conditions.append("etat = ?")
+        params.append(etat)
     if rentables_seulement:
         conditions.append("roi_estime > 0")
     if prix_min and prix_min > 0:

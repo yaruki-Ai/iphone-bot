@@ -136,6 +136,15 @@ def scorer_annonce(annonce: dict, stats: dict | None,
     s_rep = _score_reparation(panne)
     s_risk = _score_risque(panne, icloud)
 
+    # Filtre "trop beau pour être vrai" : un prix anormalement bas par rapport au
+    # marché = arnaque / erreur / mauvais libellé. On ne le présente pas comme une
+    # opportunité (rentabilité et ROI mis à zéro, donc exclu des opportunités).
+    if revente_est and prix:
+        ratio = prix / revente_est
+        seuil = 0.40 if annonce.get("etat") == "fonctionnel" else 0.15
+        if ratio < seuil:
+            s_rent, roi = 0.0, 0.0
+
     total = round(s_liq + s_rent + s_rep + s_risk)
     total = max(0, min(100, total))
 
