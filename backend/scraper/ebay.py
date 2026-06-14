@@ -115,6 +115,7 @@ def _normaliser(titre_el) -> dict | None:
             "description": titre,
             "date_publication": None,
             "icloud_detecte": analyse["icloud_detecte"],
+            "batterie_pct": analyse["batterie_pct"],
         }
     except (AttributeError, ValueError, TypeError) as exc:
         log.debug(f"Item eBay ignoré (parsing) : {exc}")

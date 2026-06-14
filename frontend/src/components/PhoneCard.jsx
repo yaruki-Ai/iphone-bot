@@ -1,6 +1,6 @@
 /**
- * PhoneCard.jsx — Carte d'une annonce / opportunité d'achat (sobre, sans emoji).
- * Affiche modèle, panne, prix, score, prix max conseillé et ROI estimé.
+ * PhoneCard.jsx — Carte d'une opportunité d'achat (sobre, claire, sans emoji).
+ * Affiche modèle, panne, % batterie si connu, prix, prix d'achat max et bénéfice.
  */
 import React from "react";
 import ScoreBar from "./ScoreBar.jsx";
@@ -40,10 +40,15 @@ export default function PhoneCard({ annonce }) {
         <AlertBadge score={a.score} />
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="px-2 py-0.5 rounded border border-line bg-app text-ink text-xs">
           {libellePanne(a.panne)}
         </span>
+        {a.batterie_pct ? (
+          <span className="px-2 py-0.5 rounded border border-emerald-200 bg-emerald-50 text-emerald-700 text-xs">
+            Batterie {a.batterie_pct}%
+          </span>
+        ) : null}
         {a.icloud_detecte ? (
           <span className="px-2 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700 text-xs">
             iCloud à vérifier
@@ -54,29 +59,27 @@ export default function PhoneCard({ annonce }) {
       <ScoreBar score={a.score} />
 
       <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-app py-2.5">
-          <div className="text-[11px] text-muted">Prix</div>
+        <div className="rounded-lg bg-app py-2.5" title="Prix demandé par le vendeur">
+          <div className="text-[11px] text-muted">Prix demandé</div>
           <div className="font-semibold text-ink">{euros(a.prix)}</div>
         </div>
-        <div className="rounded-lg bg-app py-2.5">
-          <div className="text-[11px] text-muted">Max conseillé</div>
+        <div className="rounded-lg bg-app py-2.5"
+             title="Prix d'achat à ne pas dépasser pour viser ta marge cible">
+          <div className="text-[11px] text-muted">Achat max</div>
           <div className={`font-semibold ${bonAchat ? "text-positif" : "text-ink"}`}>
             {euros(a.prix_max_achat)}
           </div>
         </div>
-        <div className="rounded-lg bg-app py-2.5">
-          <div className="text-[11px] text-muted">ROI estimé</div>
+        <div className="rounded-lg bg-app py-2.5"
+             title="Revente estimée − achat − pièces − frais (livraison/protection)">
+          <div className="text-[11px] text-muted">Bénéfice estimé</div>
           <div className="font-semibold text-positif">{euros(a.roi_estime)}</div>
         </div>
       </div>
 
       {a.url ? (
-        <a
-          href={a.url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-center text-sm font-medium text-accent hover:text-accentdark"
-        >
+        <a href={a.url} target="_blank" rel="noreferrer"
+           className="text-center text-sm font-medium text-accent hover:text-accentdark">
           Voir l'annonce
         </a>
       ) : null}

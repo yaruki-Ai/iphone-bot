@@ -66,6 +66,7 @@ def _normaliser(item: dict) -> dict | None:
             "description": item.get("description", ""),
             "date_publication": None,
             "icloud_detecte": analyse["icloud_detecte"],
+            "batterie_pct": analyse["batterie_pct"],
         }
     except (KeyError, ValueError, TypeError) as exc:
         log.debug(f"Item Vinted ignoré (parsing) : {exc}")

@@ -43,6 +43,22 @@ def cout_pieces_estime(panne: str | None) -> float:
     return COUT_PIECES_ESTIME.get(panne, 40.0)
 
 
+def frais_acquisition(plateforme: str | None, prix: float) -> float:
+    """
+    Frais estimés à l'achat (€), en plus du prix affiché : livraison + protection.
+    - Vinted : protection acheteur (~0,70 € + 5 %) + livraison.
+    - eBay   : livraison estimée.
+    - Leboncoin : 0 (remise en main propre le plus souvent).
+    """
+    livraison = settings.FRAIS_LIVRAISON
+    p = (plateforme or "").lower()
+    if p == "vinted":
+        return round(0.70 + 0.05 * (prix or 0) + livraison, 2)
+    if p == "ebay":
+        return round(livraison, 2)
+    return 0.0
+
+
 def _score_liquidite(stats: dict | None) -> float:
     """Liquidité /30 à partir de l'indice de liquidité du modèle (0-100)."""
     if not stats or stats.get("score_liquidite") is None:
@@ -111,9 +127,12 @@ def scorer_annonce(annonce: dict, stats: dict | None,
     # Prix de revente estimé = prix médian des fonctionnels du modèle.
     revente_est = stats.get("prix_median") if stats else None
     cout_pieces = cout_pieces_estime(panne)
+    frais = frais_acquisition(annonce.get("plateforme"), prix)
+    # Coût total à déduire de la revente : pièces + frais d'achat (livraison/protection).
+    cout_total = cout_pieces + frais
 
     s_liq = _score_liquidite(stats)
-    s_rent, roi = _score_rentabilite(prix, revente_est, cout_pieces)
+    s_rent, roi = _score_rentabilite(prix, revente_est, cout_total)
     s_rep = _score_reparation(panne)
     s_risk = _score_risque(panne, icloud)
 
@@ -127,6 +146,7 @@ def scorer_annonce(annonce: dict, stats: dict | None,
         "score_reparation": s_rep,
         "score_risque": s_risk,
         "roi_estime": roi,
-        "prix_max_achat": prix_max_achat(revente_est, cout_pieces, marge_cible_pct),
+        "frais_acquisition": frais,
+        "prix_max_achat": prix_max_achat(revente_est, cout_total, marge_cible_pct),
         "revente_estimee": revente_est,
     }

@@ -160,8 +160,7 @@ async def envoyer_rapport(top_cassees: list[dict], top_fonctionnels: list[dict])
         "title": titre,
         "description": description[:4000],
         "color": _COULEUR_RAPPORT,
-        "footer": {"text": "Récap automatique de 20h00 · seuil score "
-                           f"{settings.SEUIL_RAPPORT}+"},
+        "footer": {"text": "Récap automatique de 20h00 · meilleures opportunités rentables du jour"},
     }
     if top_fonctionnels:
         embed["fields"] = [{

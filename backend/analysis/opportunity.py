@@ -61,12 +61,27 @@ async def recalculer_scores() -> list[dict[str, Any]]:
     return opportunites
 
 
-async def top_opportunites(limite: int = 50, score_min: int = 0) -> list[dict[str, Any]]:
-    """Retourne les meilleures opportunités actives (annonces cassées scorées)."""
+async def top_opportunites(limite: int = 100, score_min: int = 0,
+                           prix_min: float = 0, prix_max: float = 0,
+                           rentables_seulement: bool = True) -> list[dict[str, Any]]:
+    """
+    Retourne les opportunités actives (annonces cassées scorées).
+    Par défaut : toutes les annonces RENTABLES (ROI > 0), sans filtre de score.
+    Les filtres (score min, fourchette de prix) sont optionnels.
+    """
+    conditions = ["active = 1", "etat = 'casse'", "score IS NOT NULL", "score >= ?"]
+    params: list[Any] = [score_min]
+    if rentables_seulement:
+        conditions.append("roi_estime > 0")
+    if prix_min and prix_min > 0:
+        conditions.append("prix >= ?")
+        params.append(prix_min)
+    if prix_max and prix_max > 0:
+        conditions.append("prix <= ?")
+        params.append(prix_max)
+    params.append(limite)
+    where = " AND ".join(conditions)
     return await fetch_all(
-        """SELECT * FROM annonces
-           WHERE active = 1 AND etat = 'casse' AND score IS NOT NULL AND score >= ?
-           ORDER BY score DESC, roi_estime DESC
-           LIMIT ?""",
-        (score_min, limite),
+        f"SELECT * FROM annonces WHERE {where} ORDER BY score DESC, roi_estime DESC LIMIT ?",
+        tuple(params),
     )

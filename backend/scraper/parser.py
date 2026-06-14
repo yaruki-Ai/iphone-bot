@@ -176,6 +176,29 @@ def detect_icloud(texte: str) -> bool:
     return _contient_racine(_normaliser(texte), _MOTS_ICLOUD)
 
 
+def detect_batterie_pct(texte: str) -> int | None:
+    """
+    Détecte la santé de batterie en % si elle est indiquée (ex : 'batterie 89%').
+    Retourne un entier 50-100 ou None. Évite de confondre avec d'autres '%'.
+    """
+    t = _normaliser(texte)
+    # Pourcentage proche d'un mot lié à la batterie.
+    for m in re.finditer(r"(\d{2,3})\s*%", t):
+        pct = int(m.group(1))
+        if not 50 <= pct <= 100:
+            continue
+        contexte = t[max(0, m.start() - 28): m.end() + 12]
+        if any(k in contexte for k in ("batterie", "sante", "battery", "capacite", "cycle")):
+            return pct
+    # Formulation 'batterie 100' / 'batterie a 89'.
+    m = re.search(r"batterie\s*(?:a|:)?\s*(\d{2,3})\b", t)
+    if m:
+        pct = int(m.group(1))
+        if 50 <= pct <= 100:
+            return pct
+    return None
+
+
 def difficulte_reparation(panne: str | None) -> str:
     """Convertit une panne en difficulté : facile|moyen|difficile|impossible|aucune."""
     table = {
@@ -216,7 +239,7 @@ def analyser_texte(titre: str, description: str = "") -> dict:
     """
     if est_accessoire(titre):
         return {"modele": None, "stockage": None, "etat": "fonctionnel",
-                "panne": None, "icloud_detecte": 0}
+                "panne": None, "icloud_detecte": 0, "batterie_pct": None}
 
     texte = f"{titre or ''} {description or ''}"
     panne = detect_panne(texte)
@@ -229,4 +252,5 @@ def analyser_texte(titre: str, description: str = "") -> dict:
         "etat": etat,
         "panne": panne,
         "icloud_detecte": 1 if detect_icloud(texte) else 0,
+        "batterie_pct": detect_batterie_pct(texte),
     }

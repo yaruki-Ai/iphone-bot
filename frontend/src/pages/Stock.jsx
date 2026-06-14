@@ -22,7 +22,7 @@ export default function Stock() {
   const [form, setForm] = useState({
     modele: "", stockage: "", couleur: "", panne_achat: "ecran",
     prix_achat: "", date_achat: aujourdhui(), plateforme_achat: "leboncoin",
-    pieces_remplacees: "", cout_pieces: "0", statut: "en_reparation",
+    pieces_remplacees: "", cout_pieces: "0", statut: "en_reparation", notes: "",
   });
   const [venteId, setVenteId] = useState(null);
   const [vente, setVente] = useState({
@@ -48,7 +48,7 @@ export default function Stock() {
         cout_pieces: Number(form.cout_pieces || 0),
       });
       setForm({ ...form, modele: "", stockage: "", couleur: "", prix_achat: "",
-        pieces_remplacees: "", cout_pieces: "0" });
+        pieces_remplacees: "", cout_pieces: "0", notes: "" });
       charger();
     } catch (err) {
       setErreur(err.message);
@@ -140,6 +140,13 @@ export default function Stock() {
               onChange={(e) => setForm({ ...form, pieces_remplacees: e.target.value })}
               placeholder="écran, batterie…" />
           </Champ>
+          <div className="col-span-2 md:col-span-4">
+            <Champ label="Description (pour reconnaître l'iPhone)">
+              <Input value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder="ex : iPhone 13 noir, petite rayure coin haut, vendeur Lyon, lien annonce…" />
+            </Champ>
+          </div>
           <div className="col-span-2 md:col-span-4">
             <Bouton type="submit" variante="success">Ajouter au stock</Bouton>
           </div>

@@ -79,6 +79,8 @@ export default function App() {
       setToast("Erreur lors du lancement du scan.");
     } finally {
       setTimeout(() => setScanEnCours(false), 6000);
+      // Le message disparaît automatiquement au bout de 5 s.
+      setTimeout(() => setToast(""), 5000);
     }
   }
 
@@ -107,8 +109,8 @@ export default function App() {
                     Données réelles
                   </span>
                 )}
-                <Service actif={s.discord_alertes} label="Discord" />
-                <Service actif={s.ebay} label="eBay" />
+                <Service actif={true} label="Vinted" />
+                <Service actif={true} label="eBay" />
               </div>
             </div>
           </div>

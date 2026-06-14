@@ -156,6 +156,9 @@ async def calculer_stats_modele(modele: str, stockage: str | None) -> dict | Non
 
 async def recalculer_tout() -> int:
     """Recalcule les stats de marché pour tous les modèles présents en base."""
+    # On repart d'une table propre : évite les doublons (notamment quand le
+    # stockage est NULL, où la contrainte UNIQUE ne déclenche pas l'upsert).
+    await execute("DELETE FROM marche_stats")
     modeles = await tous_les_modeles()
     nb = 0
     for m in modeles:

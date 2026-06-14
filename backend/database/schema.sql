@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS annonces (
     prix_max_achat       REAL,                             -- seuil d'achat conseillé (opportunité)
     roi_estime           REAL,                             -- marge estimée en € (revente - achat - pièces)
     icloud_detecte       INTEGER DEFAULT 0,                -- 1 si verrouillage iCloud suspecté
+    batterie_pct         INTEGER,                          -- santé batterie détectée (%) si indiquée
 
     created_at           TEXT    NOT NULL,
     updated_at           TEXT    NOT NULL,

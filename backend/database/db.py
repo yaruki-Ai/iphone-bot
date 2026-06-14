@@ -43,6 +43,12 @@ async def init_db() -> None:
     try:
         async with aiosqlite.connect(settings.CHEMIN_DB) as conn:
             await conn.executescript(schema_sql)
+            # Migration douce : ajoute les colonnes manquantes aux bases existantes.
+            for colonne, definition in (("batterie_pct", "INTEGER"),):
+                try:
+                    await conn.execute(f"ALTER TABLE annonces ADD COLUMN {colonne} {definition}")
+                except aiosqlite.Error:
+                    pass  # colonne déjà présente
             await conn.commit()
         log.info(f"Base SQLite initialisée : {settings.CHEMIN_DB}")
     except aiosqlite.Error as exc:

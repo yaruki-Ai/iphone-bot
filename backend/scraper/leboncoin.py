@@ -81,6 +81,7 @@ def _normaliser(ad: dict) -> dict | None:
             "description": body,
             "date_publication": ad.get("index_date") or ad.get("first_publication_date"),
             "icloud_detecte": analyse["icloud_detecte"],
+            "batterie_pct": analyse["batterie_pct"],
         }
     except (KeyError, ValueError, TypeError) as exc:
         log.debug(f"Annonce LBC ignorée (parsing) : {exc}")

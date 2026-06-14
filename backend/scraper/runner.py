@@ -14,7 +14,7 @@ from backend.config import settings
 from backend.database.db import fetch_all
 from backend.logger import log
 from backend.notifier import discord
-from backend.repository import marquer_disparues, upsert_plusieurs
+from backend.repository import marquer_disparues, purger_anciennes, upsert_plusieurs
 from backend.scraper import ebay, leboncoin, simulator, vinted
 
 
@@ -68,18 +68,20 @@ async def verifier_annonces_actives() -> int:
     """Vérifie les annonces actives : celles disparues depuis >24h = vendues."""
     log.info("Vérification des annonces actives (rotation 24h)…")
     nb = await marquer_disparues(seuil_heures=24.0)
+    # Nettoyage des annonces vendues trop anciennes (> 90 jours).
+    await purger_anciennes(jours=90)
     # Les délais de vente ayant changé, on rafraîchit les stats marché.
     await market.recalculer_tout()
     return nb
 
 
 async def _top_cassees(limite: int = 15) -> list[dict]:
-    """Top opportunités cassées actives (score >= seuil rapport), par score."""
+    """Meilleures opportunités cassées RENTABLES du jour (ROI > 0), par score."""
     return await fetch_all(
         """SELECT * FROM annonces
-           WHERE active = 1 AND etat = 'casse' AND score IS NOT NULL AND score >= ?
+           WHERE active = 1 AND etat = 'casse' AND score IS NOT NULL AND roi_estime > 0
            ORDER BY score DESC, roi_estime DESC LIMIT ?""",
-        (settings.SEUIL_RAPPORT, limite),
+        (limite,),
     )
 
 

@@ -81,6 +81,8 @@ class Settings:
         self.SCAN_INTERVAL_MINUTES: int = _int(os.getenv("SCAN_INTERVAL_MINUTES"), 12)
         self.SEUIL_ALERTE_SCORE: int = _int(os.getenv("SEUIL_ALERTE_SCORE"), 70)
         self.MARGE_CIBLE_POURCENT: float = _float(os.getenv("MARGE_CIBLE_POURCENT"), 30.0)
+        # Frais de livraison estimés à l'achat (€), inclus dans la marge/ROI.
+        self.FRAIS_LIVRAISON: float = _float(os.getenv("FRAIS_LIVRAISON"), 5.0)
         # Alertes Discord immédiates à chaque scan : désactivées par défaut.
         # On privilégie UN récap quotidien (cf. ci-dessous) pour éviter le spam.
         self.ALERTES_IMMEDIATES: bool = _bool(os.getenv("ALERTES_IMMEDIATES"), False)

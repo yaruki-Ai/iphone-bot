@@ -6,7 +6,7 @@ plateforme + identifiant), le marquage des annonces disparues (= vendues)
 et quelques requêtes partagées par les scrapers, le scheduler et l'analyse.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from backend.database.db import execute, fetch_all, fetch_one, maintenant_iso
@@ -27,9 +27,9 @@ async def upsert_annonce(data: dict[str, Any]) -> Optional[int]:
         INSERT INTO annonces (
             plateforme, plateforme_id, url, titre, modele, stockage, couleur,
             etat, panne, prix, ville, code_postal, description, date_publication,
-            premiere_detection, derniere_detection, active, icloud_detecte,
+            premiere_detection, derniere_detection, active, icloud_detecte, batterie_pct,
             created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?,?)
         ON CONFLICT(plateforme, plateforme_id) DO UPDATE SET
             prix              = excluded.prix,
             titre             = excluded.titre,
@@ -43,6 +43,7 @@ async def upsert_annonce(data: dict[str, Any]) -> Optional[int]:
             code_postal       = excluded.code_postal,
             description       = excluded.description,
             icloud_detecte    = excluded.icloud_detecte,
+            batterie_pct      = excluded.batterie_pct,
             derniere_detection= excluded.derniere_detection,
             active            = 1,
             date_disparition  = NULL,
@@ -67,6 +68,7 @@ async def upsert_annonce(data: dict[str, Any]) -> Optional[int]:
         data.get("premiere_detection", now),
         now,                       # derniere_detection
         data.get("icloud_detecte", 0),
+        data.get("batterie_pct"),
         now,                       # created_at
         now,                       # updated_at
     )
@@ -125,6 +127,22 @@ async def marquer_disparues(seuil_heures: float = 24.0) -> int:
         nb += 1
     if nb:
         log.info(f"{nb} annonces marquées vendues (disparues depuis > {seuil_heures}h).")
+    return nb
+
+
+async def purger_anciennes(jours: int = 90) -> int:
+    """Supprime les annonces vendues (inactives) disparues depuis plus de N jours."""
+    limite = (datetime.now(timezone.utc) - timedelta(days=jours)).isoformat()
+    avant = await fetch_one(
+        "SELECT COUNT(*) AS n FROM annonces WHERE active = 0 AND date_disparition < ?",
+        (limite,),
+    )
+    nb = avant["n"] if avant else 0
+    if nb:
+        await execute(
+            "DELETE FROM annonces WHERE active = 0 AND date_disparition < ?", (limite,)
+        )
+        log.info(f"{nb} anciennes annonces (> {jours} j) purgées.")
     return nb
 
 
