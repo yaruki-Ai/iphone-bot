@@ -80,6 +80,10 @@ async def lifespan(app: FastAPI):
     from backend.backup import creer_sauvegarde
     creer_sauvegarde()
 
+    # Raccourci sur le Bureau au tout premier lancement (mode .exe Windows).
+    from backend.raccourci import creer_raccourci_bureau
+    creer_raccourci_bureau()
+
     # Amorçage des données de démonstration si la base est vide et mode simulation.
     if settings.SIMULATION_MODE:
         await simulator.amorcer_si_vide()
