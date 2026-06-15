@@ -89,6 +89,17 @@ def _normaliser(titre_el) -> dict | None:
             return None
         prix_el = carte.select_one(".s-card__price")
         lien_el = carte.select_one('a[href*="/itm/"]')
+        # Image de l'annonce (pour l'aperçu Discord) : on prend la 1re vraie URL http.
+        image = None
+        for img_el in carte.select("img"):
+            cand = img_el.get("src") or img_el.get("data-src")
+            if cand and cand.startswith("data:"):
+                cand = img_el.get("data-src")
+            if not cand and img_el.get("srcset"):
+                cand = img_el["srcset"].split(",")[0].strip().split(" ")[0]
+            if cand and cand.startswith("http"):
+                image = cand
+                break
         prix = _prix_depuis_texte(prix_el.get_text(" ", strip=True)) if prix_el else None
         url = lien_el.get("href") if lien_el else None
         pid = _id_depuis_url(url)
@@ -116,6 +127,7 @@ def _normaliser(titre_el) -> dict | None:
             "date_publication": None,
             "icloud_detecte": analyse["icloud_detecte"],
             "batterie_pct": analyse["batterie_pct"],
+            "image_url": image,
         }
     except (AttributeError, ValueError, TypeError) as exc:
         log.debug(f"Item eBay ignoré (parsing) : {exc}")

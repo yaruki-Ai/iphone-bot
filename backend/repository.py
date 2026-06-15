@@ -28,8 +28,8 @@ async def upsert_annonce(data: dict[str, Any]) -> Optional[int]:
             plateforme, plateforme_id, url, titre, modele, stockage, couleur,
             etat, panne, prix, ville, code_postal, description, date_publication,
             premiere_detection, derniere_detection, active, icloud_detecte, batterie_pct,
-            created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?,?)
+            image_url, created_at, updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?,?,?)
         ON CONFLICT(plateforme, plateforme_id) DO UPDATE SET
             prix              = excluded.prix,
             titre             = excluded.titre,
@@ -44,6 +44,7 @@ async def upsert_annonce(data: dict[str, Any]) -> Optional[int]:
             description       = excluded.description,
             icloud_detecte    = excluded.icloud_detecte,
             batterie_pct      = excluded.batterie_pct,
+            image_url         = excluded.image_url,
             derniere_detection= excluded.derniere_detection,
             active            = 1,
             date_disparition  = NULL,
@@ -69,6 +70,7 @@ async def upsert_annonce(data: dict[str, Any]) -> Optional[int]:
         now,                       # derniere_detection
         data.get("icloud_detecte", 0),
         data.get("batterie_pct"),
+        data.get("image_url"),
         now,                       # created_at
         now,                       # updated_at
     )

@@ -31,6 +31,7 @@ jobs:
         env:
           SIMULATION_MODE: "false"
           ALERTES_IMMEDIATES: "true"      # pousse les bonnes opportunités dès le scan
+          SEUIL_ALERTE_SCORE: "55"        # seuil d'alerte (plus bas = plus d'opportunités)
           DISCORD_WEBHOOK_ALERTES: ${{ secrets.DISCORD_WEBHOOK_ALERTES }}
           DISCORD_WEBHOOK_RAPPORT: ${{ secrets.DISCORD_WEBHOOK_RAPPORT }}
           LBC_EMAIL: ${{ secrets.LBC_EMAIL }}

@@ -50,6 +50,13 @@ def _normaliser(item: dict) -> dict | None:
         if not analyse["modele"]:
             return None
         url = item.get("url") or f"{_BASE}/items/{item.get('id')}"
+        # Photo de l'annonce (pour l'aperçu Discord).
+        photo = item.get("photo") if isinstance(item.get("photo"), dict) else {}
+        image = photo.get("url")
+        if not image:
+            photos = item.get("photos") or []
+            if photos and isinstance(photos[0], dict):
+                image = photos[0].get("url")
         return {
             "plateforme": "vinted",
             "plateforme_id": str(item.get("id")),
@@ -67,6 +74,7 @@ def _normaliser(item: dict) -> dict | None:
             "date_publication": None,
             "icloud_detecte": analyse["icloud_detecte"],
             "batterie_pct": analyse["batterie_pct"],
+            "image_url": image,
         }
     except (KeyError, ValueError, TypeError) as exc:
         log.debug(f"Item Vinted ignoré (parsing) : {exc}")

@@ -123,6 +123,10 @@ async def alerter_opportunite(annonce: dict[str, Any]) -> bool:
         "fields": champs,
         "footer": {"text": f"{(annonce.get('plateforme') or '').capitalize()} · {annonce.get('ville') or 'France'}"},
     }
+    # Photo de l'annonce en aperçu (si disponible).
+    image_url = annonce.get("image_url")
+    if image_url and str(image_url).startswith("http"):
+        embed["image"] = {"url": image_url}
     payload = {"username": "Arbitrage iPhone", "embeds": [embed]}
 
     envoye = await _post_webhook(settings.DISCORD_WEBHOOK_ALERTES, payload)
