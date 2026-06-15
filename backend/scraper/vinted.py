@@ -46,7 +46,11 @@ def _normaliser(item: dict) -> dict | None:
             prix = float(bloc_prix)
         if prix is None or prix < 10:
             return None  # prix absent ou implausible (accessoire / erreur)
-        analyse = analyser_texte(titre, item.get("description", ""))
+        # Vinted met les détails (batterie, stockage, état) dans
+        # item_box.accessibility_label — on l'utilise comme texte d'analyse.
+        box = item.get("item_box") if isinstance(item.get("item_box"), dict) else {}
+        texte_details = box.get("accessibility_label") or item.get("description", "") or ""
+        analyse = analyser_texte(titre, texte_details)
         if not analyse["modele"]:
             return None
         url = item.get("url") or f"{_BASE}/items/{item.get('id')}"
@@ -70,7 +74,7 @@ def _normaliser(item: dict) -> dict | None:
             "prix": prix,
             "ville": None,
             "code_postal": None,
-            "description": item.get("description", ""),
+            "description": texte_details,
             "date_publication": None,
             "icloud_detecte": analyse["icloud_detecte"],
             "batterie_pct": analyse["batterie_pct"],
