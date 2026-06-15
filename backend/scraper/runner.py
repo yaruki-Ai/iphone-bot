@@ -47,10 +47,11 @@ async def scan_complet() -> dict:
     await market.recalculer_tout()
     opportunites = await opportunity.recalculer_scores()
 
-    # Alertes immédiates : seulement si explicitement activées (sinon récap 20h).
+    # Alertes immédiates : seulement si activées, et limitées par scan (anti-rafale).
     nb_alertes = 0
     if settings.ALERTES_IMMEDIATES:
-        for opp in opportunites:
+        meilleures = sorted(opportunites, key=lambda o: o.get("score", 0), reverse=True)
+        for opp in meilleures[: settings.MAX_ALERTES_PAR_SCAN]:
             if await discord.alerter_opportunite(opp):
                 nb_alertes += 1
 

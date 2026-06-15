@@ -86,6 +86,8 @@ class Settings:
         # Alertes Discord immédiates à chaque scan : désactivées par défaut.
         # On privilégie UN récap quotidien (cf. ci-dessous) pour éviter le spam.
         self.ALERTES_IMMEDIATES: bool = _bool(os.getenv("ALERTES_IMMEDIATES"), False)
+        # Nombre max d'alertes envoyées par scan (anti-rafale ; le reste suit).
+        self.MAX_ALERTES_PAR_SCAN: int = _int(os.getenv("MAX_ALERTES_PAR_SCAN"), 8)
         # Récap quotidien : score minimum retenu et nombre max d'annonces listées.
         self.SEUIL_RAPPORT: int = _int(os.getenv("SEUIL_RAPPORT"), 50)
         self.RAPPORT_TOP_N: int = _int(os.getenv("RAPPORT_TOP_N"), 15)
