@@ -99,16 +99,24 @@ async def alerter_opportunite(annonce: dict[str, Any]) -> bool:
     prix_max = annonce.get("prix_max_achat")
     revente = annonce.get("revente_estimee")
 
+    # État affiché dans le titre : 'Bon état' (fonctionnel) ou la panne (cassé).
+    if annonce.get("etat") == "fonctionnel":
+        etat_txt = "Bon état (fonctionnel)"
+    else:
+        etat_txt = _libelle_panne(annonce.get("panne"))
+    batt = annonce.get("batterie_pct")
+    batt_txt = f"{batt} %" if batt else "non précisé"
+
     champs = [
         {"name": "Prix demandé", "value": f"{prix:.0f} €" if prix else "—", "inline": True},
-        {"name": "Panne", "value": _libelle_panne(annonce.get("panne")), "inline": True},
+        {"name": "Batterie", "value": batt_txt, "inline": True},
         {"name": "Score", "value": f"{score}/100", "inline": True},
         {"name": "Revente estimée", "value": f"{revente:.0f} €" if revente else "—", "inline": True},
-        {"name": "Prix max conseillé", "value": f"{prix_max:.0f} €" if prix_max else "—", "inline": True},
-        {"name": "ROI estimé", "value": f"{roi:.0f} €" if roi is not None else "—", "inline": True},
+        {"name": "Achat max conseillé", "value": f"{prix_max:.0f} €" if prix_max else "—", "inline": True},
+        {"name": "Bénéfice estimé", "value": f"{roi:.0f} €" if roi is not None else "—", "inline": True},
     ]
     embed = {
-        "title": f"Opportunité — {modele} {stockage}".strip(),
+        "title": f"Opportunité — {modele} {stockage} · {etat_txt}".strip(),
         "description": (annonce.get("titre") or "")[:200],
         "url": annonce.get("url") or None,
         "color": couleur,
@@ -136,18 +144,22 @@ async def envoyer_rapport(top_cassees: list[dict], top_fonctionnels: list[dict])
                            "webhook manquant")
         return False
 
+    def _batt(a: dict) -> str:
+        """Mention batterie compacte si connue."""
+        return f" · batt {a['batterie_pct']} %" if a.get("batterie_pct") else ""
+
     def ligne_cassee(i: int, a: dict) -> str:
         """Une ligne numérotée d'opportunité cassée."""
         modele = f"{a.get('modele','?')} {a.get('stockage') or ''}".strip()
-        return (f"`{i:>2}.` **{modele}** — {_libelle_panne(a.get('panne'))}\n"
+        return (f"`{i:>2}.` **{modele}** — {_libelle_panne(a.get('panne'))}{_batt(a)}\n"
                 f"     {a.get('prix',0):.0f} € · score **{a.get('score',0)}** · "
-                f"ROI ~{(a.get('roi_estime') or 0):.0f} € · "
+                f"bénéfice ~{(a.get('roi_estime') or 0):.0f} € · "
                 f"[voir l'annonce]({a.get('url','')})")
 
     def ligne_fonct(a: dict) -> str:
         """Une ligne de bonne affaire fonctionnelle."""
         modele = f"{a.get('modele','?')} {a.get('stockage') or ''}".strip()
-        return f"• **{modele}** — {a.get('prix',0):.0f} € · [voir]({a.get('url','')})"
+        return f"• **{modele}** — {a.get('prix',0):.0f} €{_batt(a)} · [voir]({a.get('url','')})"
 
     if top_cassees:
         description = "\n".join(ligne_cassee(i + 1, a) for i, a in enumerate(top_cassees))
