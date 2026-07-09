@@ -1,14 +1,14 @@
 name: Scan iPhone (alertes Discord)
 
-# Fait tourner le bot gratuitement 24/7, même PC éteint.
+# Déclenché par cron-job.org (toutes les 15 min) via workflow_dispatch.
+# Un seul déclencheur pour éviter les runs qui se chevauchent (source de doublons).
 on:
-  schedule:
-    - cron: "*/20 * * * *"   # toutes les 20 minutes (granularité mini de GitHub)
-  workflow_dispatch:           # bouton "Run workflow" pour tester manuellement
+  workflow_dispatch:
 
 permissions:
-  contents: write              # pour committer la base entre deux exécutions
+  contents: write
 
+# Un seul scan à la fois ; les suivants attendent (pas d'exécution en parallèle).
 concurrency:
   group: scan-iphone
   cancel-in-progress: false
@@ -18,6 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # IMPORTANT anti-doublons : on repart TOUJOURS de la base la plus récente.
+      # Sinon un run mis en file d'attente réutiliserait une vieille base (sans les
+      # alertes déjà envoyées) et renverrait les mêmes annonces.
+      - name: Base la plus fraîche
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
 
       - uses: actions/setup-python@v5
         with:
@@ -43,5 +53,13 @@ jobs:
           git config user.name "iphone-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -f data/iphone_arbitrage.db || true
-          git commit -m "scan auto $(date -u +%FT%TZ)" || echo "rien a committer"
-          git push || echo "push ignore"
+          git commit -m "scan auto $(date -u +%FT%TZ)" || { echo "rien a committer"; exit 0; }
+          # Envoi robuste : on réessaie en resynchronisant si le dépôt a bougé.
+          for i in 1 2 3 4 5; do
+            if git push origin main; then echo "base sauvegardee"; exit 0; fi
+            echo "depot modifie, resynchronisation (tentative $i)"
+            git fetch origin main
+            git rebase origin/main || git rebase --abort
+            sleep 5
+          done
+          echo "push finalement echoue"
