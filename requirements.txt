@@ -8,3 +8,5 @@ loguru==0.7.3
 apscheduler==3.11.0
 pydantic==2.10.4
 beautifulsoup4==4.12.3
+# Base PostgreSQL (Supabase) pour le cloud. L'app locale reste sur SQLite.
+asyncpg==0.30.0

@@ -1,14 +1,11 @@
 name: Scan iPhone (alertes Discord)
 
 # Déclenché par cron-job.org (toutes les 15 min) via workflow_dispatch.
-# Un seul déclencheur pour éviter les runs qui se chevauchent (source de doublons).
+# Les données vont dans Supabase (plus de base commitée dans git).
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write
-
-# Un seul scan à la fois ; les suivants attendent (pas d'exécution en parallèle).
+# Un seul scan à la fois (les suivants attendent).
 concurrency:
   group: scan-iphone
   cancel-in-progress: false
@@ -18,16 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      # IMPORTANT anti-doublons : on repart TOUJOURS de la base la plus récente.
-      # Sinon un run mis en file d'attente réutiliserait une vieille base (sans les
-      # alertes déjà envoyées) et renverrait les mêmes annonces.
-      - name: Base la plus fraîche
-        run: |
-          git fetch origin main
-          git reset --hard origin/main
 
       - uses: actions/setup-python@v5
         with:
@@ -42,24 +29,9 @@ jobs:
           SIMULATION_MODE: "false"
           ALERTES_IMMEDIATES: "true"      # pousse les bonnes opportunités dès le scan
           SEUIL_ALERTE_SCORE: "55"        # seuil d'alerte (plus bas = plus d'opportunités)
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}   # Supabase (Postgres)
           DISCORD_WEBHOOK_ALERTES: ${{ secrets.DISCORD_WEBHOOK_ALERTES }}
           DISCORD_WEBHOOK_RAPPORT: ${{ secrets.DISCORD_WEBHOOK_RAPPORT }}
           LBC_EMAIL: ${{ secrets.LBC_EMAIL }}
           LBC_PASSWORD: ${{ secrets.LBC_PASSWORD }}
         run: python -m backend.job scan
-
-      - name: Persister la base (dédoublonnage des alertes)
-        run: |
-          git config user.name "iphone-bot"
-          git config user.email "bot@users.noreply.github.com"
-          git add -f data/iphone_arbitrage.db || true
-          git commit -m "scan auto $(date -u +%FT%TZ)" || { echo "rien a committer"; exit 0; }
-          # Envoi robuste : on réessaie en resynchronisant si le dépôt a bougé.
-          for i in 1 2 3 4 5; do
-            if git push origin main; then echo "base sauvegardee"; exit 0; fi
-            echo "depot modifie, resynchronisation (tentative $i)"
-            git fetch origin main
-            git rebase origin/main || git rebase --abort
-            sleep 5
-          done
-          echo "push finalement echoue"

@@ -22,5 +22,6 @@ jobs:
       - name: Rapport quotidien
         env:
           SIMULATION_MODE: "false"
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DISCORD_WEBHOOK_RAPPORT: ${{ secrets.DISCORD_WEBHOOK_RAPPORT }}
         run: python -m backend.job rapport

@@ -57,15 +57,6 @@ def _libelle_panne(panne: str | None) -> str:
     return _LIBELLE_PANNE.get(panne, "—")
 
 
-async def _deja_alertee(annonce_id: int) -> bool:
-    """Vrai si une alerte d'opportunité a déjà été envoyée pour cette annonce."""
-    ligne = await fetch_one(
-        "SELECT id FROM alertes WHERE type='opportunite' AND annonce_id=? AND envoye=1",
-        (annonce_id,),
-    )
-    return ligne is not None
-
-
 async def _journaliser(type_: str, annonce_id: int | None, message: str,
                        score: int | None, envoye: bool, erreur: str | None = None) -> None:
     """Enregistre la notification dans la table 'alertes'."""
@@ -78,22 +69,33 @@ async def _journaliser(type_: str, annonce_id: int | None, message: str,
 
 async def alerter_opportunite(annonce: dict[str, Any]) -> bool:
     """
-    Envoie une alerte Discord pour une opportunité (annonce cassée à fort score).
-    Dédoublonne via la table 'alertes'. Retourne True si réellement envoyée.
+    Envoie une alerte Discord pour une opportunité.
+    Dédoublonnage ATOMIQUE : on RÉSERVE la ligne d'alerte AVANT d'envoyer
+    (INSERT ... ON CONFLICT DO NOTHING). L'index unique garantit qu'une seule
+    exécution peut la créer -> impossible d'envoyer 2× la même annonce, même en
+    cas de course. Envoi réussi -> réservation gardée ; échec -> libérée (retry).
     """
     annonce_id = annonce.get("id")
-    if annonce_id and await _deja_alertee(annonce_id):
-        return False
-
-    if not settings.discord_alertes_actif:
-        await _journaliser("opportunite", annonce_id, "webhook alertes non configuré",
-                           annonce.get("score"), False, "webhook manquant")
-        return False
-
     score = annonce.get("score", 0)
-    couleur = _COULEUR_HAUTE if score >= 80 else _COULEUR_MOYENNE
     modele = annonce.get("modele") or "iPhone (modèle inconnu)"
     stockage = annonce.get("stockage") or ""
+
+    if not settings.discord_alertes_actif:
+        return False
+
+    reserve_id = None
+    if annonce_id:
+        row = await fetch_one(
+            "INSERT INTO alertes (type, annonce_id, canal, message, score, envoye, erreur, created_at) "
+            "VALUES ('opportunite', ?, 'discord', ?, ?, 0, NULL, ?) "
+            "ON CONFLICT DO NOTHING RETURNING id",
+            (annonce_id, f"{modele} {stockage}".strip(), score, maintenant_iso()),
+        )
+        if not row:
+            return False  # déjà alertée (réservée par une autre exécution)
+        reserve_id = row["id"]
+
+    couleur = _COULEUR_HAUTE if score >= 80 else _COULEUR_MOYENNE
     prix = annonce.get("prix")
     roi = annonce.get("roi_estime")
     prix_max = annonce.get("prix_max_achat")
@@ -130,8 +132,12 @@ async def alerter_opportunite(annonce: dict[str, Any]) -> bool:
     payload = {"username": "Arbitrage iPhone", "embeds": [embed]}
 
     envoye = await _post_webhook(settings.DISCORD_WEBHOOK_ALERTES, payload)
-    await _journaliser("opportunite", annonce_id, embed["title"], score, envoye,
-                       None if envoye else "échec d'envoi")
+    if reserve_id is not None:
+        if envoye:
+            await execute("UPDATE alertes SET envoye = 1 WHERE id = ?", (reserve_id,))
+        else:
+            # Échec d'envoi : on libère la réservation pour réessayer plus tard.
+            await execute("DELETE FROM alertes WHERE id = ?", (reserve_id,))
     if envoye:
         log.info(f"Alerte Discord envoyée : {modele} {stockage} (score {score}).")
     return envoye

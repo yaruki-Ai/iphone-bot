@@ -74,6 +74,11 @@ class Settings:
         self.CHEMIN_SCHEMA: Path = RACINE / "backend" / "database" / "schema.sql"
         self.DOSSIER_FRONT: Path = RACINE / "frontend" / "dist"
 
+        # --- Base de données ---
+        # Si DATABASE_URL est défini => PostgreSQL (Supabase, utilisé par le cloud).
+        # Sinon => SQLite local (app du client, inchangée).
+        self.DATABASE_URL: str = os.getenv("DATABASE_URL", "").strip()
+
         # --- Application ---
         self.APP_HOST: str = os.getenv("APP_HOST", "127.0.0.1")
         self.APP_PORT: int = _int(os.getenv("APP_PORT"), 8000)

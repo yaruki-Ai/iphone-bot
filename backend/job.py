@@ -14,23 +14,13 @@ pour pouvoir être committée proprement entre deux exécutions.
 import asyncio
 import sys
 
-from backend.database.db import _ouvrir, init_db
+from backend.database.db import checkpoint, init_db
 from backend.logger import log
 from backend.scraper.runner import (
     generer_rapport_quotidien,
     scan_complet,
     verifier_annonces_actives,
 )
-
-
-async def _checkpoint() -> None:
-    """Force l'écriture du WAL dans le fichier .db (pour commit/persistance)."""
-    try:
-        conn = await _ouvrir()
-        await conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
-        await conn.close()
-    except Exception as exc:
-        log.warning(f"Checkpoint WAL impossible : {exc}")
 
 
 async def main(action: str) -> None:
@@ -45,7 +35,7 @@ async def main(action: str) -> None:
     else:
         print("Usage : python -m backend.job [scan|rapport|verif]")
         return
-    await _checkpoint()
+    await checkpoint()
     log.info(f"Job '{action}' terminé.")
 
 
