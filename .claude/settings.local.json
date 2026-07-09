@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(python -c \"import sqlite3; c=sqlite3.connect\\('iphone_arbitrage.db'\\); print\\('journal_mode:', c.execute\\('PRAGMA journal_mode;'\\).fetchone\\(\\)[0]\\); print\\('busy_timeout:', c.execute\\('PRAGMA busy_timeout;'\\).fetchone\\(\\)[0]\\); c.close\\(\\)\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "mcp__99240c03-60fa-4eb1-b8d2-c3f7384d655f__list_projects",
+      "mcp__99240c03-60fa-4eb1-b8d2-c3f7384d655f__create_project",
+      "mcp__99240c03-60fa-4eb1-b8d2-c3f7384d655f__execute_sql"
     ]
   }
 }
